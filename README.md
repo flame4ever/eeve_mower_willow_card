@@ -4,7 +4,7 @@ A self-building Lovelace control panel for the [EEVE Mower Willow integration](h
 
 You just point it at your mower — the card discovers all of the mower's entities automatically and builds the full panel: live camera, joystick, drive buttons, lawn-mower controls, the switches (manual driving, mowing motor, docking, emergency stop), sound + volume, map exploration, system actions and all zone / global settings.
 
-![EEVE Mower device page](https://raw.githubusercontent.com/flame4ever/eeve_mower_willow/main/Example.png)
+![EEVE Mower Card](Example.png)
 
 ## Requirements
 
