@@ -255,9 +255,10 @@ class EeveMowerCard extends HTMLElement {
     // Drive buttons are intentionally omitted — the joystick above covers
     // manual driving. (manual_drive_speed is kept out of the settings list too.)
 
-    // Lawn mower entity
+    // Lawn mower entity (left column, under the joystick — everything from
+    // "Steuerung" onwards stays in the right column).
     if (lawn)
-      cards.push({ type: "tile", entity: lawn, name: "Mähen / Dock",
+      left.push({ type: "tile", entity: lawn, name: "Mähen / Dock",
         features: [{ type: "lawn-mower-commands", commands: ["start_pause", "dock"] }] });
 
     // Main switches
