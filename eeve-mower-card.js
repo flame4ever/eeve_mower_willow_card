@@ -290,15 +290,30 @@ class EeveMowerCard extends HTMLElement {
       cards.push({ type: "entities", title: "Zeitplan & Extras",
         entities: extras.map((e) => ({ entity: e })) });
 
-    // Zone & global settings: every select + number except volume / drive speed
+    // Settings (select + number), grouped and sorted: global, all-zones, per-zone.
+    // Grouping uses the language-independent translation_key; per-zone entities
+    // all share the "zone_*" key, so we sort them by friendly name to keep each
+    // zone's controls together (Grass 1 …, Grass 2 …) regardless of language.
     if (this._config.show_settings) {
-      const used = new Set([volume, k("manual_drive_speed")].filter(Boolean));
+      const usedIds = new Set([volume, k("manual_drive_speed")].filter(Boolean));
       const settings = ents.filter((r) =>
         (r.entity_id.startsWith("select.") || r.entity_id.startsWith("number.")) &&
-        !used.has(r.entity_id)).map((r) => r.entity_id).sort();
-      if (settings.length)
-        cards.push({ type: "entities", title: "Zonen & Einstellungen",
-          entities: settings.map((e) => ({ entity: e })) });
+        !usedIds.has(r.entity_id));
+      const nameOf = (eid) => {
+        const s = this._hass.states && this._hass.states[eid];
+        return (s && s.attributes && s.attributes.friendly_name) || eid;
+      };
+      const tk = (r) => r.translation_key || "";
+      const groupTitle = (title, list) => {
+        if (!list.length) return;
+        const ids = list.map((r) => r.entity_id)
+          .sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+        cards.push({ type: "entities", title, entities: ids.map((e) => ({ entity: e })) });
+      };
+      groupTitle("Globale Einstellungen",
+        settings.filter((r) => !tk(r).startsWith("all_zones_") && !tk(r).startsWith("zone_")));
+      groupTitle("Alle Zonen", settings.filter((r) => tk(r).startsWith("all_zones_")));
+      groupTitle("Zonen", settings.filter((r) => tk(r).startsWith("zone_")));
     }
 
     // System actions
