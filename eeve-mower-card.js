@@ -251,10 +251,13 @@ class EeveMowerCard extends HTMLElement {
       left.push({ type: "picture-entity", entity: camera, camera_view: "live",
         show_state: false, show_name: false });
 
-    // Joystick (left column)
+    // Joystick (left column). Marked with _joystick so _build instantiates the
+    // bundled element directly (document.createElement) instead of going through
+    // createCardElement — that way it never depends on HA resolving the custom
+    // card type, which can fail right after a fresh HACS install.
     if (this._config.show_joystick && manual)
-      left.push({ type: "custom:eeve-joystick-card", title: "Steuerstick",
-        start: manual, max_speed: 0.4, turn_speed: 0.14, size: 230 });
+      left.push({ _joystick: { title: "Steuerstick",
+        start: manual, max_speed: 0.4, turn_speed: 0.14, size: 230 } });
 
     // Drive buttons are intentionally omitted — the joystick above covers
     // manual driving. (manual_drive_speed is kept out of the settings list too.)
@@ -345,7 +348,13 @@ class EeveMowerCard extends HTMLElement {
       col.style.cssText =
         `flex:${grow} 1 300px;min-width:280px;display:flex;flex-direction:column;gap:8px;`;
       for (const cfg of configs) {
-        const el = helpers.createCardElement(cfg);
+        let el;
+        if (cfg._joystick) {
+          el = document.createElement("eeve-joystick-card");
+          el.setConfig(cfg._joystick);
+        } else {
+          el = helpers.createCardElement(cfg);
+        }
         el.hass = this._hass;
         this._children.push(el);
         col.appendChild(el);
