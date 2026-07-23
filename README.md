@@ -2,7 +2,7 @@
 
 A self-building Lovelace control panel for the [EEVE Mower Willow integration](https://github.com/flame4ever/eeve_mower_willow).
 
-You just point it at your mower — the card discovers all of the mower's entities automatically and builds the full panel: live camera, joystick, drive buttons, lawn-mower controls, the switches (manual driving, mowing motor, docking, emergency stop), sound + volume, map exploration, system actions and all zone / global settings.
+You just point it at your mower — the card discovers all of the mower's entities automatically and builds the full panel: live camera, joystick, lawn-mower controls, the switches (manual driving, mowing motor, docking, emergency stop), sound + volume, map exploration, system actions and all zone / global settings.
 
 ![EEVE Mower Card](Example.png)
 
@@ -40,13 +40,33 @@ show_settings: true      # optional (default true)
 
 If you have **more than one** mower, set `device:` (or any one `entity:` of that mower) so the card knows which one to build.
 
-### Layout
+## Add it to a dashboard (important)
 
-The card uses two responsive columns — camera + joystick on the left, all controls on the right. To see them side by side, give the card enough width: put it in a **Panel** dashboard (Settings → Dashboards → add view → *Panel (1 card)*) or any wide/full-width view. In a narrow column the two sections stack automatically.
+The card lays out **two columns** — camera + joystick + mower tile on the left, and everything from *Steuerung / Controls* onwards on the right. To get that side‑by‑side layout, the card needs the **full width of the view**. In a normal view Home Assistant caps every card at roughly one column (~470 px), so the two columns wrap under each other even on a wide screen.
+
+Put the card in its **own Panel view**:
+
+1. Open your dashboard and click the **pencil** (top right) → **Edit dashboard**.
+2. Add a **new view** (the **+** tab) — or edit an existing one via the **pencil on its tab**.
+3. In the view dialog, under **Layout**, choose **Panel (single card)** *(German: „Panel (einzelne Karte)")*.
+4. **Save**.
+5. In that Panel view, add **one** card → *Manual / By YAML* → paste:
+
+   ```yaml
+   type: custom:eeve-mower-card
+   ```
+6. **Save**.
+
+Result:
+
+- **Wide screens / desktop:** camera + joystick on the left, controls on the right.
+- **Phones / narrow screens:** the two columns stack automatically, everything below each other.
+
+A Panel view shows exactly one card, which is perfect here since this single card already contains the whole control panel. If you drop the card into a normal (Sections/Masonry) view instead, it still works — it just always stacks vertically.
 
 ## How it works
 
-The card finds the mower's device and resolves every control by its entity's object-id suffix (e.g. `…_manual_driving`, `…_mowing_motor`, `move_forward`), so it keeps working regardless of the entity-id prefix or the interface language. The joystick is bundled in, so no extra resource is needed.
+The card finds the mower's device and resolves every control by its **`translation_key`** from the entity registry (e.g. `manual_driving`, `mowing_motor`, `sound`), **not** by entity‑id. That keeps it working regardless of the entity‑id prefix or the interface language — on a German install the manual‑driving switch is `switch.…_manuelles_fahren`, and the card still finds it. The joystick is bundled into this file, so no extra resource is needed.
 
 ## License
 
