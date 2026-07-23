@@ -190,61 +190,54 @@ class EeveMowerCard extends HTMLElement {
   getCardSize() { return 20; }
   static getStubConfig() { return {}; }
 
-  /* --- entity discovery ------------------------------------------- */
-  _deviceEntities() {
-    const ents = this._hass.entities || {};
-    // 1) explicit device
+  /* --- entity discovery (language-independent) --------------------- *
+   * Entity IDs are localized on non-English installs (e.g. a German HA
+   * names the manual-driving switch switch.…_manuelles_fahren), so we
+   * resolve every control by its language-independent translation_key from
+   * the entity registry (fetched in _build) instead of by entity_id suffix. */
+  _deviceRegEntries() {
+    const reg = this._reg || [];
     let deviceId = this._config.device;
-    // 2) derive device from a given entity
-    if (!deviceId && this._config.entity && ents[this._config.entity])
-      deviceId = ents[this._config.entity].device_id;
-    // 3) auto-detect: the (single) device that owns eeve_mower_willow entities
+    if (!deviceId && this._config.entity) {
+      const e = reg.find((r) => r.entity_id === this._config.entity);
+      if (e) deviceId = e.device_id;
+    }
     if (!deviceId) {
       const counts = {};
-      for (const eid in ents) {
-        const e = ents[eid];
-        if (e.platform === PLATFORM && e.device_id) counts[e.device_id] = (counts[e.device_id] || 0) + 1;
-      }
+      for (const r of reg)
+        if (r.platform === PLATFORM && r.device_id)
+          counts[r.device_id] = (counts[r.device_id] || 0) + 1;
       deviceId = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || null;
     }
     this._deviceId = deviceId;
-    const list = [];
-    for (const eid in ents) {
-      const e = ents[eid];
-      if (e.device_id === deviceId || (e.platform === PLATFORM && !deviceId)) list.push(eid);
-    }
-    return list;
-  }
-
-  _find(entities, domain, suffix) {
-    // first entity whose id is "<domain>.*<suffix>"
-    return entities.find((eid) => {
-      if (!eid.startsWith(domain + ".")) return false;
-      return eid.split(".")[1].endsWith(suffix);
-    });
-  }
-  _all(entities, domain, test) {
-    return entities.filter((eid) => eid.startsWith(domain + ".") && test(eid.split(".")[1]));
+    return reg.filter((r) => r.device_id === deviceId && !r.disabled_by);
   }
 
   /* --- layout ------------------------------------------------------ */
   _cardConfigs() {
-    const E = this._deviceEntities();
-    const f = (d, s) => this._find(E, d, s);
+    const ents = this._deviceRegEntries();
+    // translation_key -> entity_id (language-independent lookup)
+    const byKey = {};
+    for (const r of ents)
+      if (r.translation_key && !(r.translation_key in byKey)) byKey[r.translation_key] = r.entity_id;
+    const k = (key) => byKey[key];
+    const domainFirst = (d) => {
+      const r = ents.find((x) => x.entity_id.startsWith(d + "."));
+      return r && r.entity_id;
+    };
     // Left column = camera + joystick; right column = all the controls.
     const left = [];
     const right = [];
     const cards = right; // control sections go into the right column
 
-    const camera = f("camera", "");
-    const lawn = f("lawn_mower", "");
-    const manual = f("switch", "manual_driving");
-    const mowing = f("switch", "mowing_motor");
-    const docking = f("switch", "docking");
-    const estop = f("switch", "emergency_stop");
-    const sound = f("switch", "sound");
-    const volume = f("number", "volume");
-    const speed = f("number", "manual_drive_speed");
+    const camera = domainFirst("camera");
+    const lawn = domainFirst("lawn_mower");
+    const manual = k("manual_driving");
+    const mowing = k("mowing_motor");
+    const docking = k("docking");
+    const estop = k("emergency_stop");
+    const sound = k("sound");
+    const volume = k("volume");
 
     // Camera (left column)
     if (this._config.show_camera && camera)
@@ -280,35 +273,35 @@ class EeveMowerCard extends HTMLElement {
         entities: soundEnts.map((e) => ({ entity: e })) });
 
     // Map exploration
-    const mapBtns = [
-      f("button", "start_map_exploration"), f("button", "stop_map_exploration"),
-      f("button", "finish_map_exploration"), f("button", "abort_map_exploration"),
-      f("button", "build_map"), f("button", "auto_align_maps"),
-    ].filter(Boolean);
+    const mapBtns = ["start_map_exploration", "stop_map_exploration", "finish_map_exploration",
+      "abort_map_exploration", "build_map", "auto_align_maps"].map(k).filter(Boolean);
     if (mapBtns.length)
       cards.push({ type: "entities", title: "Karten",
         entities: mapBtns.map((e) => ({ entity: e })) });
 
     // Schedule + extras (weekday switches, beacons, auto annotation)
-    const extras = this._all(E, "switch",
-      (o) => o.includes("mow_on_") || o.endsWith("starlight_beacons") || o.endsWith("auto_annotation"));
+    const extras = ents.filter((r) =>
+      r.entity_id.startsWith("switch.") && r.translation_key &&
+      (r.translation_key.startsWith("mow_on_") ||
+       r.translation_key === "starlight_beacons" ||
+       r.translation_key === "auto_annotation")).map((r) => r.entity_id);
     if (extras.length)
       cards.push({ type: "entities", title: "Zeitplan & Extras",
         entities: extras.map((e) => ({ entity: e })) });
 
-    // Zone & global settings: every select + number except the ones used above
+    // Zone & global settings: every select + number except volume / drive speed
     if (this._config.show_settings) {
-      const used = new Set([volume, speed].filter(Boolean));
-      const settings = E.filter((eid) =>
-        (eid.startsWith("select.") || eid.startsWith("number.")) && !used.has(eid));
-      settings.sort();
+      const used = new Set([volume, k("manual_drive_speed")].filter(Boolean));
+      const settings = ents.filter((r) =>
+        (r.entity_id.startsWith("select.") || r.entity_id.startsWith("number.")) &&
+        !used.has(r.entity_id)).map((r) => r.entity_id).sort();
       if (settings.length)
         cards.push({ type: "entities", title: "Zonen & Einstellungen",
           entities: settings.map((e) => ({ entity: e })) });
     }
 
     // System actions
-    const sys = [f("button", "reboot_mower"), f("button", "shutdown_mower")].filter(Boolean);
+    const sys = [k("reboot"), k("shutdown")].filter(Boolean);
     if (sys.length)
       cards.push({ type: "entities", title: "System",
         entities: sys.map((e) => ({ entity: e })) });
@@ -324,6 +317,13 @@ class EeveMowerCard extends HTMLElement {
   async _build() {
     this._built = true;
     const helpers = await window.loadCardHelpers();
+    // Fetch the entity registry so we can resolve controls by their
+    // language-independent translation_key (entity IDs are localized).
+    try {
+      this._reg = await this._hass.callWS({ type: "config/entity_registry/list" });
+    } catch (e) {
+      this._reg = [];
+    }
     const card = document.createElement("ha-card");
     if (this._config.title) card.header = this._config.title;
     const container = document.createElement("div");
