@@ -1,6 +1,5 @@
 {
-  "name": "EEVE Mower Card",
-  "render_readme": true,
-  "filename": "eeve_mower_willow_card.zip",
-  "zip_release": true
+    "name": "EEVE Mower Card",
+    "render_readme": true,
+    "filename": "eeve_mower_willow_card.js"
 }
