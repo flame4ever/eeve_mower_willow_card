@@ -1,14 +1,16 @@
 # EEVE Mower Card
 
-A self-building Lovelace control panel for the [EEVE Mower Willow integration](https://github.com/flame4ever/eeve_mower_willow).
+Two self-building Lovelace cards for the [EEVE Mower Willow integration](https://github.com/flame4ever/eeve_mower_willow).
 
-You just point it at your mower — the card discovers all of the mower's entities automatically and builds the full panel: live camera, joystick, lawn-mower controls, the switches (manual driving, mowing motor, docking, emergency stop), sound + volume, map exploration, system actions and all zone / global settings.
+**`custom:eeve-mower-card`** — the full control panel. You just point it at your mower and the card discovers all of the mower's entities automatically: live camera with status overlay, joystick, lawn-mower controls, the switches (manual driving, mowing motor, docking, emergency stop), sound + volume, map exploration, system actions and all zone / global settings.
+
+**`custom:eeve-mower-map-card`** — a satellite map of your garden showing the mowing zones and the mower's live position, with an editor for drawing, cloning and renaming zones.
 
 ![EEVE Mower Card](Example.png)
 
 ## Requirements
 
-- The [EEVE Mower Willow integration](https://github.com/flame4ever/eeve_mower_willow) (v0.4.1+) installed and set up.
+- The [EEVE Mower Willow integration](https://github.com/flame4ever/eeve_mower_willow) (v0.5.0+) installed and set up.
 
 ## Install (HACS)
 
@@ -16,7 +18,9 @@ You just point it at your mower — the card discovers all of the mower's entiti
 2. Repository: `https://github.com/flame4ever/eeve_mower_willow_card`, category: **Dashboard** (Lovelace)
 3. Install **EEVE Mower Card**, then reload your browser.
 
-HACS registers the Lovelace resource for you. For a manual install, copy `eeve-mower-card.js` to `<config>/www/` and add it as a JavaScript-Module resource.
+HACS installs both cards and registers the Lovelace resources for you.
+
+For a manual install, copy both `eeve-mower-card.js` and `eeve-mower-map-card.js` to `<config>/www/` and add each one as a JavaScript-Module resource (`/local/eeve-mower-card.js` and `/local/eeve-mower-map-card.js`).
 
 ## Usage
 
@@ -64,9 +68,20 @@ Result:
 
 A Panel view shows exactly one card, which is perfect here since this single card already contains the whole control panel. If you drop the card into a normal (Sections/Masonry) view instead, it still works — it just always stacks vertically.
 
+## Map card
+
+The map card shows your mowing zones on a satellite image together with the mower's live GPS position:
+
+```yaml
+type: custom:eeve-mower-map-card
+title: EEVE Karte        # header text (optional)
+```
+
+Click the **pencil** in the top-right corner of the map to enter edit mode, where you can draw new zones, clone or rename existing ones and drag their corners. Saving writes the zones back to the mower via the integration's `eeve_mower_willow.save_zones` service. New or cloned zones show up as entities in Home Assistant right away — no restart needed.
+
 ## How it works
 
-The card finds the mower's device and resolves every control by its **`translation_key`** from the entity registry (e.g. `manual_driving`, `mowing_motor`, `sound`), **not** by entity‑id. That keeps it working regardless of the entity‑id prefix or the interface language — on a German install the manual‑driving switch is `switch.…_manuelles_fahren`, and the card still finds it. The joystick is bundled into this file, so no extra resource is needed.
+The cards find the mower's device and resolve every control by its **`translation_key`** from the entity registry (e.g. `manual_driving`, `mowing_motor`, `sound`), **not** by entity‑id. That keeps them working regardless of the entity‑id prefix or the interface language — on a German install the manual‑driving switch is `switch.…_manuelles_fahren`, and the card still finds it. The joystick and the camera overlay are bundled into `eeve-mower-card.js`, so no extra resources are needed for them.
 
 ## License
 
