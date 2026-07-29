@@ -1,0 +1,29 @@
+name: "Release"
+
+on:
+  release:
+    types:
+      - "published"
+
+permissions: {}
+
+jobs:
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: write
+    steps:
+      - name: "Checkout the repository"
+        uses: "actions/checkout@v4.1.7"
+
+      - name: "ZIP the card files"
+        shell: "bash"
+        run: |
+          cd "${{ github.workspace }}"
+          zip eeve_mower_willow_card.zip eeve-mower-card.js eeve-mower-map-card.js
+
+      - name: "Upload the ZIP file to the release"
+        uses: "softprops/action-gh-release@v2.2.1"
+        with:
+          files: ${{ github.workspace }}/eeve_mower_willow_card.zip
